@@ -4,17 +4,29 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronLeft, ChevronRight, Clock, Heart, Share2, User } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ChevronLeft, ChevronRight, Clock, Heart, Share2, User, MessageCircle, AlertTriangle, CheckCircle2, Trophy } from "lucide-react"
 import Image from "next/image"
 
 export default function AuctionDetailPage({ params }: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [bidAmount, setBidAmount] = useState("")
+  const [commentText, setCommentText] = useState("")
   const [auction, setAuction] = useState<any>(null)
+  const [isInWatchlist, setIsInWatchlist] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(true) // For demo purposes, assume user is logged in
+  const [isCreator, setIsCreator] = useState(false) // For demo purposes
+  const [isWinner, setIsWinner] = useState(false) // For demo purposes
+  const [bidError, setBidError] = useState("")
+  const [comments, setComments] = useState<any[]>([])
 
   // Simulate data fetching
   useEffect(() => {
@@ -36,10 +48,17 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
       bidCount: 3,
       endDate: "25/5/2024",
       timeLeft: "3 أيام و 5 ساعات",
+      status: "active", // active or closed
+      category: "home-appliances",
       seller: {
         name: "أحمد محمد",
         rating: 4.8,
         auctions: 15,
+        id: "seller123"
+      },
+      winner: {
+        name: "محمد علي",
+        id: "user456"
       },
       images: [
         "/placeholder.svg?height=500&width=500",
@@ -47,17 +66,62 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
         "/placeholder.svg?height=500&width=500",
       ],
       bids: [
-        { user: "محمد علي", amount: 500, time: "منذ 2 ساعة" },
-        { user: "سارة أحمد", amount: 450, time: "منذ 5 ساعات" },
-        { user: "خالد محمود", amount: 400, time: "منذ 8 ساعات" },
+        { user: "محمد علي", userId: "user456", amount: 500, time: "منذ 2 ساعة" },
+        { user: "سارة أحمد", userId: "user789", amount: 450, time: "منذ 5 ساعات" },
+        { user: "خالد محمود", userId: "user101", amount: 400, time: "منذ 8 ساعات" },
       ],
     }
+
+    // Sample comments data
+    const commentsData = [
+      {
+        id: 1,
+        user: "محمد علي",
+        userId: "user456",
+        avatar: "/placeholder.svg?height=40&width=40",
+        text: "هل المروحة تعمل بشكل جيد؟ وهل هناك أي عيوب؟",
+        time: "منذ 3 أيام"
+      },
+      {
+        id: 2,
+        user: "أحمد محمد",
+        userId: "seller123",
+        avatar: "/placeholder.svg?height=40&width=40",
+        text: "نعم، المروحة تعمل بشكل ممتاز ولا توجد أي عيوب. تم استخدامها لمدة 6 أشهر فقط.",
+        time: "منذ 3 أيام",
+        isOwner: true
+      },
+      {
+        id: 3,
+        user: "سارة أحمد",
+        userId: "user789",
+        avatar: "/placeholder.svg?height=40&width=40",
+        text: "هل يمكن توصيلها إلى المنصورة؟",
+        time: "منذ يومين"
+      },
+      {
+        id: 4,
+        user: "أحمد محمد",
+        userId: "seller123",
+        avatar: "/placeholder.svg?height=40&width=40",
+        text: "نعم، يمكن التوصيل إلى المنصورة مقابل رسوم إضافية.",
+        time: "منذ يومين",
+        isOwner: true
+      }
+    ]
 
     // Simulate API call
     setTimeout(() => {
       setAuction(auctionData)
+      setComments(commentsData)
+
+      // For demo purposes, randomly set these states
+      setIsInWatchlist(Math.random() > 0.5)
+      setIsCreator(auctionData.seller.id === "seller123") // Assume current user is seller123
+      setIsWinner(auctionData.status === "closed" && auctionData.winner.id === "user456") // Assume current user is user456
+
       setIsLoading(false)
-    }, 100)
+    }, 500)
   }, [params.id])
 
   const nextImage = () => {
@@ -72,8 +136,91 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
 
   const handleBid = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle bid submission
+
+    // Basic validation
+    if (!bidAmount) {
+      setBidError("يرجى إدخال قيمة المزايدة")
+      return
+    }
+
+    const bidValue = parseInt(bidAmount)
+
+    if (isNaN(bidValue)) {
+      setBidError("يرجى إدخال قيمة صحيحة")
+      return
+    }
+
+    if (bidValue <= auction.currentBid) {
+      setBidError("يجب أن تكون قيمة المزايدة أكبر من المزايدة الحالية")
+      return
+    }
+
+    if (bidValue < auction.startingBid) {
+      setBidError("يجب أن تكون قيمة المزايدة أكبر من أو تساوي سعر البداية")
+      return
+    }
+
+    // Clear any previous errors
+    setBidError("")
+
+    // In a real app, you would send this to your API
     alert(`تم تقديم مزايدة بمبلغ ${bidAmount} جنيه`)
+
+    // Update the UI to reflect the new bid
+    setAuction({
+      ...auction,
+      currentBid: bidValue,
+      bidCount: auction.bidCount + 1,
+      bids: [
+        { user: "أنت", userId: "currentUser", amount: bidValue, time: "الآن" },
+        ...auction.bids
+      ]
+    })
+
+    // Reset the bid amount
+    setBidAmount("")
+  }
+
+  const toggleWatchlist = () => {
+    // In a real app, you would send this to your API
+    setIsInWatchlist(!isInWatchlist)
+    alert(isInWatchlist ? "تمت إزالة المزاد من المفضلة" : "تمت إضافة المزاد إلى المفضلة")
+  }
+
+  const handleCloseAuction = () => {
+    // In a real app, you would send this to your API
+    if (confirm("هل أنت متأكد من إغلاق المزاد؟ سيتم تحديد الفائز بناءً على أعلى مزايدة.")) {
+      setAuction({
+        ...auction,
+        status: "closed",
+        winner: {
+          name: auction.bids[0].user,
+          id: auction.bids[0].userId
+        }
+      })
+      alert("تم إغلاق المزاد بنجاح")
+    }
+  }
+
+  const handleAddComment = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!commentText.trim()) {
+      return
+    }
+
+    // In a real app, you would send this to your API
+    const newComment = {
+      id: comments.length + 1,
+      user: "أنت",
+      userId: "currentUser",
+      avatar: "/placeholder.svg?height=40&width=40",
+      text: commentText,
+      time: "الآن"
+    }
+
+    setComments([...comments, newComment])
+    setCommentText("")
   }
 
   // Show loading state
@@ -109,6 +256,28 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
       <Navbar />
 
       <div className="container mx-auto py-8">
+        {/* Winner notification */}
+        {auction.status === "closed" && isWinner && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <Trophy className="h-5 w-5 text-green-500" />
+            <AlertTitle className="text-green-700">تهانينا! لقد فزت بهذا المزاد</AlertTitle>
+            <AlertDescription className="text-green-600">
+              سيتواصل معك البائع قريباً لإتمام عملية البيع.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Closed auction notification */}
+        {auction.status === "closed" && !isWinner && (
+          <Alert className="mb-6 bg-gray-50 border-gray-200">
+            <CheckCircle2 className="h-5 w-5 text-gray-500" />
+            <AlertTitle>تم إغلاق هذا المزاد</AlertTitle>
+            <AlertDescription>
+              تم إغلاق هذا المزاد وفاز به {auction.winner.name}.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left column - Images and details */}
           <div className="w-full lg:w-2/3">
@@ -166,6 +335,9 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
                   <TabsTrigger value="bids" className="flex-1">
                     المزايدات
                   </TabsTrigger>
+                  <TabsTrigger value="comments" className="flex-1">
+                    التعليقات
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="details" className="space-y-4">
@@ -207,15 +379,68 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
 
                 <TabsContent value="bids">
                   <div className="space-y-4">
-                    {auction.bids.map((bid: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center border-b pb-3">
-                        <div>
-                          <p className="font-medium">{bid.user}</p>
-                          <p className="text-sm text-gray-500">{bid.time}</p>
+                    {auction.bids.length > 0 ? (
+                      auction.bids.map((bid: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center border-b pb-3">
+                          <div>
+                            <p className="font-medium">{bid.user}</p>
+                            <p className="text-sm text-gray-500">{bid.time}</p>
+                          </div>
+                          <div className="text-lg font-semibold">{bid.amount} جنيه</div>
                         </div>
-                        <div className="text-lg font-semibold">{bid.amount} جنيه</div>
+                      ))
+                    ) : (
+                      <p className="text-center text-gray-500">لا توجد مزايدات حتى الآن</p>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="comments">
+                  <div className="space-y-6">
+                    {comments.length > 0 ? (
+                      comments.map((comment) => (
+                        <div key={comment.id} className="border-b pb-4">
+                          <div className="flex items-start gap-3">
+                            <Avatar>
+                              <AvatarImage src={comment.avatar} alt={comment.user} />
+                              <AvatarFallback>{comment.user.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{comment.user}</span>
+                                  {comment.isOwner && (
+                                    <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded">البائع</span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-gray-500">{comment.time}</span>
+                              </div>
+                              <p className="text-gray-700">{comment.text}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-gray-500">لا توجد تعليقات حتى الآن</p>
+                    )}
+
+                    {isLoggedIn && (
+                      <div className="mt-6">
+                        <form onSubmit={handleAddComment}>
+                          <div className="mb-3">
+                            <Textarea
+                              placeholder="اكتب تعليقك هنا..."
+                              value={commentText}
+                              onChange={(e) => setCommentText(e.target.value)}
+                              rows={3}
+                            />
+                          </div>
+                          <Button type="submit" className="w-full">
+                            إضافة تعليق
+                          </Button>
+                        </form>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -241,15 +466,28 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
                 <div className="font-semibold">{auction.bidCount}</div>
               </div>
 
-              <div className="flex items-center gap-2 mb-6 text-red-500">
-                <Clock className="h-5 w-5" />
-                <span>متبقي: {auction.timeLeft}</span>
-              </div>
+              {auction.status === "active" && (
+                <div className="flex items-center gap-2 mb-6 text-red-500">
+                  <Clock className="h-5 w-5" />
+                  <span>متبقي: {auction.timeLeft}</span>
+                </div>
+              )}
 
-              <form onSubmit={handleBid}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">قيمة المزايدة</label>
-                  <Input
+              {auction.status === "closed" && (
+                <div className="flex items-center gap-2 mb-6 text-gray-500">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span>تم إغلاق المزاد</span>
+                </div>
+              )}
+
+              {isLoggedIn && auction.status === "active" && !isCreator && (
+                <form onSubmit={handleBid}>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1">قيمة المزايدة</label>
+                    {bidError && (
+                      <p className="text-sm text-red-500 mb-2">{bidError}</p>
+                    )}
+                    <Input
                     type="number"
                     min={auction.currentBid + 50}
                     placeholder={`الحد الأدنى ${auction.currentBid + 50} جنيه`}
@@ -263,18 +501,59 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
                   زايد الآن
                 </Button>
               </form>
+              )}
+
+              {isCreator && auction.status === "active" && (
+                <Button onClick={handleCloseAuction} variant="outline" className="w-full">
+                  إغلاق المزاد
+                </Button>
+              )}
+
+              {!isLoggedIn && auction.status === "active" && (
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="mb-3 text-gray-600">يجب تسجيل الدخول للمزايدة</p>
+                  <Button className="w-full">تسجيل الدخول</Button>
+                </div>
+              )}
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-4">
-              <Button variant="outline" className="flex-1 gap-2">
-                <Heart className="h-5 w-5" />
-                <span>المفضلة</span>
-              </Button>
-              <Button variant="outline" className="flex-1 gap-2">
-                <Share2 className="h-5 w-5" />
-                <span>مشاركة</span>
-              </Button>
+            <div className="bg-white rounded-lg p-6">
+              <div className="flex gap-4">
+                {isLoggedIn && (
+                  <Button
+                    variant="outline"
+                    className={`flex-1 gap-2 ${isInWatchlist ? 'bg-primary/10' : ''}`}
+                    onClick={toggleWatchlist}
+                  >
+                    <Heart className={`h-5 w-5 ${isInWatchlist ? 'fill-primary text-primary' : ''}`} />
+                    <span>{isInWatchlist ? 'إزالة من المفضلة' : 'أضف للمفضلة'}</span>
+                  </Button>
+                )}
+                <Button variant="outline" className="flex-1 gap-2">
+                  <Share2 className="h-5 w-5" />
+                  <span>مشاركة</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Category info */}
+            <div className="bg-white rounded-lg p-6 mb-6">
+              <h3 className="font-semibold mb-2">معلومات إضافية</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">الفئة:</span>
+                  <span>{auction.category === "home-appliances" ? "الأجهزة المنزلية" : auction.category}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">تاريخ الانتهاء:</span>
+                  <span>{auction.endDate}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">الحالة:</span>
+                  <span>{auction.status === "active" ? "نشط" : "مغلق"}</span>
+                </div>
+              </div>
             </div>
 
             {/* Similar auctions */}
@@ -303,6 +582,8 @@ export default function AuctionDetailPage({ params }: { params: { id: string } }
           </div>
         </div>
       </div>
+
+      <Footer />
     </main>
   )
 }

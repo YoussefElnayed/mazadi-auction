@@ -57,6 +57,111 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* Custom styles for RTL support */
+html[dir="rtl"] {
+  text-align: right;
+}
+
+/* Fix for Tailwind not applying properly */
+.bg-brand-blue {
+  background-color: hsl(var(--brand-blue)) !important;
+}
+
+.bg-brand-dark-blue {
+  background-color: hsl(var(--brand-dark-blue)) !important;
+}
+
+.text-primary {
+  color: hsl(var(--primary)) !important;
+}
+
+.border-primary {
+  border-color: hsl(var(--primary)) !important;
+}
+
+.bg-primary {
+  background-color: hsl(var(--primary)) !important;
+}
+
+/* Fix for button hover states */
+.hover\:bg-primary:hover {
+  background-color: hsl(var(--primary)) !important;
+}
+
+.hover\:bg-brand-blue\/90:hover {
+  background-color: hsl(var(--brand-blue) / 0.9) !important;
+}
+
+.hover\:bg-green-600\/90:hover {
+  background-color: rgba(22, 163, 74, 0.9) !important;
+}
+
+/* Custom animations */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes float-medium {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes float-fast {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 4s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float-fast 3s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes bounce-horizontal {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+@keyframes bounce-horizontal-reverse {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-5px); }
+}
+
+.animate-bounce-horizontal {
+  animation: bounce-horizontal 1s ease-in-out infinite;
+}
+
+.animate-bounce-horizontal-reverse {
+  animation: bounce-horizontal-reverse 1s ease-in-out infinite;
 }
 

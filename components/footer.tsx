@@ -1,7 +1,24 @@
+'use client'
+
 import Link from "next/link"
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react"
+import { useState, useEffect } from "react"
 
 export function Footer() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <footer className="bg-brand-dark-blue text-white py-12">
+        <div className="container mx-auto h-20"></div>
+      </footer>
+    )
+  }
+
   return (
     <footer className="bg-brand-dark-blue text-white py-12">
       <div className="container mx-auto">
@@ -11,7 +28,7 @@ export function Footer() {
             <p className="text-gray-300 mb-4">
               منصة مزادات إلكترونية توفر لك الشفافية والأمان، حيث يمكنك بيع وشراء الأجهزة الكهربائية بأفضل الأسعار!
             </p>
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 rtl:space-x-reverse">
               <Link href="#" className="text-gray-300 hover:text-white">
                 <Facebook className="h-5 w-5" />
               </Link>
